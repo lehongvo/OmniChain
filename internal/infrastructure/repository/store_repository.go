@@ -223,4 +223,3 @@ func (r *StoreRepository) SearchByLocation(ctx context.Context, lat, lng float64
 
 	return stores, rows.Err()
 }
-

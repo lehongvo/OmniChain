@@ -36,7 +36,7 @@ func (h *Handler) CreateUser(c *fiber.Ctx) error {
 	// Validate request
 	if validationErrors := validator.ValidateStruct(&req); len(validationErrors) > 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Validation failed",
+			"error":   "Validation failed",
 			"details": validationErrors,
 		})
 	}
@@ -173,7 +173,7 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 	// Validate request
 	if validationErrors := validator.ValidateStruct(&req); len(validationErrors) > 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Validation failed",
+			"error":   "Validation failed",
 			"details": validationErrors,
 		})
 	}
@@ -257,4 +257,3 @@ func toUserResponse(u *user.User) *UserResponse {
 		UpdatedAt:   u.UpdatedAt,
 	}
 }
-

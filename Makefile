@@ -48,10 +48,11 @@ security-scan: ## Run security scans
 	@govulncheck ./...
 
 migrate-up: ## Run database migrations up
-	@migrate -path migrations -database "postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable" up
+	@DB_USER=$(DB_USER) DB_PASSWORD=$(DB_PASSWORD) DB_HOST=$(DB_HOST) DB_PORT=$(DB_PORT) DB_NAME=$(DB_NAME) ./scripts/run-migrations.sh
 
-migrate-down: ## Rollback database migrations
-	@migrate -path migrations -database "postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable" down
+migrate-down: ## Rollback database migrations (manual - drop tables)
+	@echo "Warning: migrate-down requires manual table dropping"
+	@echo "Use: docker exec onichange-postgres psql -U postgres -d onichange -c 'DROP TABLE IF EXISTS ...'"
 
 docker-build: ## Build all Docker images
 	@echo "Building Docker images..."

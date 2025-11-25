@@ -12,8 +12,14 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
+	"github.com/onichange/pos-system/internal/infrastructure/repository"
+	"github.com/onichange/pos-system/internal/interfaces/http/notification"
+	"github.com/onichange/pos-system/pkg/auth"
+	"github.com/onichange/pos-system/pkg/cache"
 	"github.com/onichange/pos-system/pkg/config"
+	"github.com/onichange/pos-system/pkg/database"
 	"github.com/onichange/pos-system/pkg/logger"
+	"github.com/onichange/pos-system/pkg/metrics"
 	"github.com/onichange/pos-system/pkg/middleware"
 )
 
@@ -28,6 +34,34 @@ func main() {
 	// Initialize logger
 	log := logger.New(cfg.Server.Environment)
 	log.Info("Starting Notification Service...")
+
+	// Initialize database
+	db, err := database.NewPostgresDB(cfg.Database, log)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer db.Close()
+
+	// Initialize Redis cache (for async processing)
+	_, err = cache.NewRedisCache(cfg.Redis.Host, cfg.Redis.Port, cfg.Redis.Password, cfg.Redis.DB, cfg.Redis.PoolSize, cfg.Redis.MinIdleConns)
+	if err != nil {
+		log.Warnf("Failed to connect to Redis: %v (continuing without cache)", err)
+	}
+
+	// Initialize JWT manager
+	jwtManager := auth.NewJWTManager(
+		cfg.JWT.AccessTokenSecret,
+		cfg.JWT.RefreshTokenSecret,
+		cfg.JWT.AccessTokenExpiry,
+		cfg.JWT.RefreshTokenExpiry,
+		cfg.JWT.Issuer,
+	)
+
+	// Initialize repositories
+	notificationRepo := repository.NewNotificationRepository(db.Pool)
+
+	// Initialize handlers
+	notificationHandler := notification.NewHandler(notificationRepo)
 
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
@@ -54,16 +88,23 @@ func main() {
 	app.Get("/health", healthCheck)
 	app.Get("/ready", readinessCheck)
 
+	// Prometheus metrics endpoint
+	app.Get("/metrics", metrics.FiberMetricsHandler())
+
 	// API routes
 	api := app.Group("/api/v1")
 
-	// Notification routes (to be implemented - async processing)
-	api.Post("/notifications", sendNotification)
-	api.Post("/notifications/batch", sendBatchNotifications)
-	api.Get("/notifications/:id", getNotificationByID)
-	api.Get("/notifications/user/:userID", getUserNotifications)
-	api.Put("/notifications/:id/read", markAsRead)
-	api.Delete("/notifications/:id", deleteNotification)
+	// Protected routes with JWT authentication
+	protected := api.Group("/", middleware.JWTAuth(jwtManager))
+
+	// Notification routes (async processing ready)
+	protected.Get("/notifications", notificationHandler.GetNotifications)
+	protected.Get("/notifications/unread/count", notificationHandler.GetUnreadCount)
+	protected.Get("/notifications/:id", notificationHandler.GetNotification)
+	protected.Post("/notifications", notificationHandler.CreateNotification)
+	protected.Put("/notifications/:id/read", notificationHandler.MarkAsRead)
+	protected.Put("/notifications/read-all", notificationHandler.MarkAllAsRead)
+	protected.Delete("/notifications/:id", notificationHandler.DeleteNotification)
 
 	// Start server
 	addr := fmt.Sprintf("%s:%s", cfg.Server.Host, "8086") // Notification service port
@@ -122,29 +163,4 @@ func errorHandler(c *fiber.Ctx, err error) error {
 	return c.Status(code).JSON(fiber.Map{
 		"error": message,
 	})
-}
-
-// Placeholder handlers - to be implemented with async processing
-func sendNotification(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{"message": "Send notification - to be implemented"})
-}
-
-func sendBatchNotifications(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{"message": "Send batch notifications - to be implemented"})
-}
-
-func getNotificationByID(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{"message": "Get notification by ID - to be implemented"})
-}
-
-func getUserNotifications(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{"message": "Get user notifications - to be implemented"})
-}
-
-func markAsRead(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{"message": "Mark notification as read - to be implemented"})
-}
-
-func deleteNotification(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{"message": "Delete notification - to be implemented"})
 }

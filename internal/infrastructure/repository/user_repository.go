@@ -163,4 +163,3 @@ func (r *UserRepository) ExistsByEmail(ctx context.Context, email string) (bool,
 	err := r.db.QueryRow(ctx, query, email).Scan(&exists)
 	return exists, err
 }
-

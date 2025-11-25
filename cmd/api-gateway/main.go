@@ -15,6 +15,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/onichange/pos-system/pkg/api"
 	"github.com/onichange/pos-system/pkg/auth"
 	"github.com/onichange/pos-system/pkg/cache"
 	"github.com/onichange/pos-system/pkg/config"
@@ -110,6 +111,12 @@ func main() {
 	if cfg.Server.Environment == "development" {
 		app.Use("/debug/pprof", pprof.New())
 	}
+
+	// Swagger/OpenAPI documentation
+	// Serve OpenAPI spec file
+	app.Static("/api/docs", "./docs/api")
+	// Setup Swagger UI
+	api.SetupSwagger(app)
 
 	// Health check endpoint
 	app.Get("/health", healthCheck)

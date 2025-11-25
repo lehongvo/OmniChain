@@ -17,6 +17,7 @@ import (
 	"github.com/onichange/pos-system/pkg/config"
 	"github.com/onichange/pos-system/pkg/database"
 	"github.com/onichange/pos-system/pkg/logger"
+	"github.com/onichange/pos-system/pkg/metrics"
 	"github.com/onichange/pos-system/pkg/middleware"
 )
 
@@ -70,6 +71,9 @@ func main() {
 	app.Get("/health", healthCheck)
 	app.Get("/ready", readinessCheck)
 
+	// Prometheus metrics endpoint
+	app.Get("/metrics", metrics.FiberMetricsHandler())
+
 	// API routes
 	api := app.Group("/api/v1")
 
@@ -80,7 +84,6 @@ func main() {
 	api.Post("/stores", storeHandler.CreateStore)
 	api.Put("/stores/:id", storeHandler.UpdateStore)
 	api.Delete("/stores/:id", storeHandler.DeleteStore)
-	api.Get("/stores/:id/inventory", getStoreInventory)
 
 	// Start server
 	addr := fmt.Sprintf("%s:%s", cfg.Server.Host, "8083") // Store service port
@@ -139,8 +142,4 @@ func errorHandler(c *fiber.Ctx, err error) error {
 	return c.Status(code).JSON(fiber.Map{
 		"error": message,
 	})
-}
-
-func getStoreInventory(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{"message": "Get store inventory - to be implemented"})
 }

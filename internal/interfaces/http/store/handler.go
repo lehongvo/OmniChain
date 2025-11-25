@@ -86,7 +86,7 @@ func (h *Handler) CreateStore(c *fiber.Ctx) error {
 
 	if validationErrors := validator.ValidateStruct(&req); len(validationErrors) > 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Validation failed",
+			"error":   "Validation failed",
 			"details": validationErrors,
 		})
 	}
@@ -247,4 +247,3 @@ func (h *Handler) SearchStores(c *fiber.Ctx) error {
 		"data": responses,
 	})
 }
-

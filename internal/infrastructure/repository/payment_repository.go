@@ -205,4 +205,3 @@ func scanPayment(rows interface {
 
 	return &p, nil
 }
-

@@ -12,8 +12,12 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
+	"github.com/onichange/pos-system/internal/infrastructure/repository"
+	"github.com/onichange/pos-system/internal/interfaces/http/inventory"
 	"github.com/onichange/pos-system/pkg/config"
+	"github.com/onichange/pos-system/pkg/database"
 	"github.com/onichange/pos-system/pkg/logger"
+	"github.com/onichange/pos-system/pkg/metrics"
 	"github.com/onichange/pos-system/pkg/middleware"
 )
 
@@ -28,6 +32,19 @@ func main() {
 	// Initialize logger
 	log := logger.New(cfg.Server.Environment)
 	log.Info("Starting Inventory Service...")
+
+	// Initialize database
+	db, err := database.NewPostgresDB(cfg.Database, log)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer db.Close()
+
+	// Initialize repositories
+	inventoryRepo := repository.NewInventoryRepository(db.Pool)
+
+	// Initialize handlers
+	inventoryHandler := inventory.NewHandler(inventoryRepo)
 
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
@@ -54,17 +71,21 @@ func main() {
 	app.Get("/health", healthCheck)
 	app.Get("/ready", readinessCheck)
 
+	// Prometheus metrics endpoint
+	app.Get("/metrics", metrics.FiberMetricsHandler())
+
 	// API routes
 	api := app.Group("/api/v1")
 
-	// Inventory routes (to be implemented)
-	api.Get("/inventory", getInventory)
-	api.Get("/inventory/:id", getInventoryItemByID)
-	api.Post("/inventory", createInventoryItem)
-	api.Put("/inventory/:id", updateInventoryItem)
-	api.Patch("/inventory/:id/stock", updateStock)
-	api.Get("/inventory/:id/history", getStockHistory)
-	api.Get("/inventory/low-stock", getLowStockItems)
+	// Inventory routes
+	api.Get("/inventory/:id", inventoryHandler.GetInventory)
+	api.Get("/inventory/product/:product_id", inventoryHandler.GetInventoryByProduct)
+	api.Get("/inventory/store/:store_id", inventoryHandler.GetInventoryByStore)
+	api.Get("/inventory/low-stock", inventoryHandler.GetLowStockItems)
+	api.Post("/inventory", inventoryHandler.CreateInventory)
+	api.Put("/inventory/:id", inventoryHandler.UpdateInventory)
+	api.Post("/inventory/reserve", inventoryHandler.ReserveStock)
+	api.Post("/inventory/release", inventoryHandler.ReleaseStock)
 
 	// Start server
 	addr := fmt.Sprintf("%s:%s", cfg.Server.Host, "8085") // Inventory service port
@@ -123,33 +144,4 @@ func errorHandler(c *fiber.Ctx, err error) error {
 	return c.Status(code).JSON(fiber.Map{
 		"error": message,
 	})
-}
-
-// Placeholder handlers - to be implemented
-func getInventory(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{"message": "Get inventory - to be implemented"})
-}
-
-func getInventoryItemByID(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{"message": "Get inventory item by ID - to be implemented"})
-}
-
-func createInventoryItem(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{"message": "Create inventory item - to be implemented"})
-}
-
-func updateInventoryItem(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{"message": "Update inventory item - to be implemented"})
-}
-
-func updateStock(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{"message": "Update stock - to be implemented"})
-}
-
-func getStockHistory(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{"message": "Get stock history - to be implemented"})
-}
-
-func getLowStockItems(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{"message": "Get low stock items - to be implemented"})
 }

@@ -19,6 +19,7 @@ import (
 	"github.com/onichange/pos-system/pkg/config"
 	"github.com/onichange/pos-system/pkg/database"
 	"github.com/onichange/pos-system/pkg/logger"
+	"github.com/onichange/pos-system/pkg/metrics"
 	"github.com/onichange/pos-system/pkg/middleware"
 )
 
@@ -85,6 +86,9 @@ func main() {
 	// Health check endpoints
 	app.Get("/health", healthCheck)
 	app.Get("/ready", readinessCheck)
+
+	// Prometheus metrics endpoint
+	app.Get("/metrics", metrics.FiberMetricsHandler())
 
 	// API routes
 	api := app.Group("/api/v1")
