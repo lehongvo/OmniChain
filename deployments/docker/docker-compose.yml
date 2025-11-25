@@ -1,0 +1,298 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: onichange-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-onichange}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - onichange-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: onichange-redis
+    command: >
+      sh -c "
+      if [ -z \"$$REDIS_PASSWORD\" ]; then
+        redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+      else
+        redis-server --requirepass $$REDIS_PASSWORD --maxmemory 256mb --maxmemory-policy allkeys-lru
+      fi
+      "
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: >
+        sh -c "
+        if [ -z \"$$REDIS_PASSWORD\" ]; then
+          redis-cli ping
+        else
+          redis-cli -a $$REDIS_PASSWORD ping
+        fi
+        "
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - onichange-network
+    restart: unless-stopped
+
+  api-gateway:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile
+      args:
+        SERVICE: api-gateway
+    container_name: onichange-api-gateway
+    environment:
+      SERVER_PORT: 8080
+      SERVER_HOST: 0.0.0.0
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-onichange}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-me-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-in-production}
+      RATE_LIMIT_REQUESTS: 100
+      RATE_LIMIT_BURST: 10
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    networks:
+      - onichange-network
+    restart: unless-stopped
+
+  order-service:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile
+      args:
+        SERVICE: order-service
+    container_name: onichange-order-service
+    environment:
+      SERVER_PORT: 8081
+      SERVER_HOST: 0.0.0.0
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-onichange}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-me-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-in-production}
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - onichange-network
+    restart: unless-stopped
+
+  user-service:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile
+      args:
+        SERVICE: user-service
+    container_name: onichange-user-service
+    environment:
+      SERVER_PORT: 8082
+      SERVER_HOST: 0.0.0.0
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-onichange}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-me-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-in-production}
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - onichange-network
+    restart: unless-stopped
+
+  store-service:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile
+      args:
+        SERVICE: store-service
+    container_name: onichange-store-service
+    environment:
+      SERVER_PORT: 8083
+      SERVER_HOST: 0.0.0.0
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-onichange}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-me-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-in-production}
+    ports:
+      - "8083:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - onichange-network
+    restart: unless-stopped
+
+  payment-service:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile
+      args:
+        SERVICE: payment-service
+    container_name: onichange-payment-service
+    environment:
+      SERVER_PORT: 8084
+      SERVER_HOST: 0.0.0.0
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-onichange}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-me-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-in-production}
+    ports:
+      - "8084:8084"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - onichange-network
+    restart: unless-stopped
+
+  inventory-service:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile
+      args:
+        SERVICE: inventory-service
+    container_name: onichange-inventory-service
+    environment:
+      SERVER_PORT: 8085
+      SERVER_HOST: 0.0.0.0
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-onichange}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-me-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-in-production}
+    ports:
+      - "8085:8085"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - onichange-network
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile
+      args:
+        SERVICE: notification-service
+    container_name: onichange-notification-service
+    environment:
+      SERVER_PORT: 8086
+      SERVER_HOST: 0.0.0.0
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-onichange}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-me-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-in-production}
+    ports:
+      - "8086:8086"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - onichange-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  onichange-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

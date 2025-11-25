@@ -1,0 +1,116 @@
+syntax = "proto3";
+
+package order;
+
+option go_package = "github.com/onichange/pos-system/proto/order";
+
+import "google/protobuf/timestamp.proto";
+
+// OrderService provides order management functionality
+service OrderService {
+  // CreateOrder creates a new order
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
+  
+  // GetOrder retrieves an order by ID
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
+  
+  // ListOrders lists orders with pagination
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
+  
+  // UpdateOrderStatus updates order status
+  rpc UpdateOrderStatus(UpdateOrderStatusRequest) returns (UpdateOrderStatusResponse);
+  
+  // StreamOrders streams order updates
+  rpc StreamOrders(StreamOrdersRequest) returns (stream Order);
+}
+
+// Order represents an order
+message Order {
+  string id = 1;
+  string user_id = 2;
+  string store_id = 3;
+  OrderStatus status = 4;
+  repeated OrderItem items = 5;
+  double total_amount = 6;
+  string currency = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+// OrderItem represents an item in an order
+message OrderItem {
+  string product_id = 1;
+  string name = 2;
+  int32 quantity = 3;
+  double price = 4;
+  double subtotal = 5;
+}
+
+// OrderStatus represents order status
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_PENDING = 1;
+  ORDER_STATUS_CONFIRMED = 2;
+  ORDER_STATUS_PROCESSING = 3;
+  ORDER_STATUS_SHIPPED = 4;
+  ORDER_STATUS_DELIVERED = 5;
+  ORDER_STATUS_CANCELLED = 6;
+}
+
+// CreateOrderRequest is the request to create an order
+message CreateOrderRequest {
+  string user_id = 1;
+  string store_id = 2;
+  repeated OrderItem items = 3;
+  string payment_method_id = 4;
+}
+
+// CreateOrderResponse is the response from creating an order
+message CreateOrderResponse {
+  Order order = 1;
+}
+
+// GetOrderRequest is the request to get an order
+message GetOrderRequest {
+  string order_id = 1;
+}
+
+// GetOrderResponse is the response from getting an order
+message GetOrderResponse {
+  Order order = 1;
+}
+
+// ListOrdersRequest is the request to list orders
+message ListOrdersRequest {
+  string user_id = 1;
+  string store_id = 2;
+  OrderStatus status = 3;
+  int32 page = 4;
+  int32 page_size = 5;
+}
+
+// ListOrdersResponse is the response from listing orders
+message ListOrdersResponse {
+  repeated Order orders = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+// UpdateOrderStatusRequest is the request to update order status
+message UpdateOrderStatusRequest {
+  string order_id = 1;
+  OrderStatus status = 2;
+}
+
+// UpdateOrderStatusResponse is the response from updating order status
+message UpdateOrderStatusResponse {
+  Order order = 1;
+}
+
+// StreamOrdersRequest is the request to stream orders
+message StreamOrdersRequest {
+  string user_id = 1;
+  string store_id = 2;
+}
+

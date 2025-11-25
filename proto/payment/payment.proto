@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package payment;
+
+option go_package = "github.com/onichange/pos-system/proto/payment";
+
+import "google/protobuf/timestamp.proto";
+
+// PaymentService provides payment processing functionality
+service PaymentService {
+  // ProcessPayment processes a payment
+  rpc ProcessPayment(ProcessPaymentRequest) returns (ProcessPaymentResponse);
+  
+  // GetPayment retrieves a payment by ID
+  rpc GetPayment(GetPaymentRequest) returns (GetPaymentResponse);
+  
+  // RefundPayment processes a refund
+  rpc RefundPayment(RefundPaymentRequest) returns (RefundPaymentResponse);
+}
+
+// Payment represents a payment
+message Payment {
+  string id = 1;
+  string order_id = 2;
+  string user_id = 3;
+  string payment_method_token = 4;
+  string payment_method_type = 5;
+  double amount = 6;
+  string currency = 7;
+  PaymentStatus status = 8;
+  string provider = 9;
+  string provider_transaction_id = 10;
+  bool three_d_secure_enabled = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp processed_at = 13;
+}
+
+// PaymentStatus represents payment status
+enum PaymentStatus {
+  PAYMENT_STATUS_UNSPECIFIED = 0;
+  PAYMENT_STATUS_PENDING = 1;
+  PAYMENT_STATUS_PROCESSING = 2;
+  PAYMENT_STATUS_COMPLETED = 3;
+  PAYMENT_STATUS_FAILED = 4;
+  PAYMENT_STATUS_REFUNDED = 5;
+}
+
+// ProcessPaymentRequest is the request to process a payment
+message ProcessPaymentRequest {
+  string order_id = 1;
+  string user_id = 2;
+  string payment_method_token = 3;
+  double amount = 4;
+  string currency = 5;
+  bool three_d_secure = 6;
+}
+
+// ProcessPaymentResponse is the response from processing a payment
+message ProcessPaymentResponse {
+  Payment payment = 1;
+}
+
+// GetPaymentRequest is the request to get a payment
+message GetPaymentRequest {
+  string payment_id = 1;
+}
+
+// GetPaymentResponse is the response from getting a payment
+message GetPaymentResponse {
+  Payment payment = 1;
+}
+
+// RefundPaymentRequest is the request to refund a payment
+message RefundPaymentRequest {
+  string payment_id = 1;
+  double amount = 2;
+  string reason = 3;
+}
+
+// RefundPaymentResponse is the response from refunding a payment
+message RefundPaymentResponse {
+  Payment payment = 1;
+  string refund_id = 2;
+}
+

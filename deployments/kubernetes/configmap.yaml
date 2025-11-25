@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: onichange
+data:
+  ENVIRONMENT: "production"
+  SERVER_PORT: "8080"
+  RATE_LIMIT_REQUESTS: "100"
+  RATE_LIMIT_BURST: "10"
+  MAX_REQUEST_SIZE: "10485760"
+  ENABLE_CORS: "true"
+  CORS_ORIGINS: "*"
+

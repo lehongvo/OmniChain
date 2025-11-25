@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "github.com/onichange/pos-system/proto/user";
+
+import "google/protobuf/timestamp.proto";
+
+// UserService provides user management functionality
+service UserService {
+  // GetUser retrieves a user by ID
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  
+  // CreateUser creates a new user
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+  
+  // UpdateUser updates user information
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
+  
+  // Authenticate authenticates a user
+  rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse);
+}
+
+// User represents a user
+message User {
+  string id = 1;
+  string email = 2;
+  string first_name = 3;
+  string last_name = 4;
+  string phone = 5;
+  bool mfa_enabled = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+// GetUserRequest is the request to get a user
+message GetUserRequest {
+  string user_id = 1;
+}
+
+// GetUserResponse is the response from getting a user
+message GetUserResponse {
+  User user = 1;
+}
+
+// CreateUserRequest is the request to create a user
+message CreateUserRequest {
+  string email = 1;
+  string password = 2;
+  string first_name = 3;
+  string last_name = 4;
+  string phone = 5;
+}
+
+// CreateUserResponse is the response from creating a user
+message CreateUserResponse {
+  User user = 1;
+}
+
+// UpdateUserRequest is the request to update a user
+message UpdateUserRequest {
+  string user_id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string phone = 4;
+}
+
+// UpdateUserResponse is the response from updating a user
+message UpdateUserResponse {
+  User user = 1;
+}
+
+// AuthenticateRequest is the request to authenticate
+message AuthenticateRequest {
+  string email = 1;
+  string password = 2;
+  string mfa_code = 3;
+}
+
+// AuthenticateResponse is the response from authentication
+message AuthenticateResponse {
+  User user = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+}
+
