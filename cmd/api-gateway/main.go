@@ -113,9 +113,6 @@ func main() {
 	}
 
 	// Swagger/OpenAPI documentation
-	// Serve OpenAPI spec file
-	app.Static("/api/docs", "./docs/api")
-	// Setup Swagger UI
 	api.SetupSwagger(app)
 
 	// Health check endpoint
